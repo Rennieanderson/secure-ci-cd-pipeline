@@ -1,20 +1,35 @@
-triggers {
-    pollSCM('* * * * *')   // checks GitHub every minute
-}
 pipeline {
     agent any
 
+    triggers {
+        pollSCM('* * * * *')   // check GitHub every minute
+    }
+
     stages {
+
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
 
         stage('Build') {
             steps {
                 echo "Building application..."
+                sh 'pip install -r requirements.txt'
             }
         }
 
-        stage('Manual Approval') {
+        stage('Test') {
             steps {
-                input message: "Approve deployment?", ok: "Deploy"
+                echo "Running tests..."
+                sh 'python -m unittest discover'
+            }
+        }
+
+        stage('Manual Approval (IAM)') {
+            steps {
+                input message: "Approve deployment to production?", ok: "Deploy"
             }
         }
 
@@ -24,7 +39,7 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Container') {
             steps {
                 sh 'docker rm -f devsecops-app || true'
                 sh 'docker run -d -p 5001:5000 --name devsecops-app devsecops-app'
@@ -32,4 +47,3 @@ pipeline {
         }
     }
 }
-
