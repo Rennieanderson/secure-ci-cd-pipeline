@@ -1,12 +1,31 @@
-stage('Docker Build') {
-    steps {
-        sh 'docker build -t devsecops-app .'
-    }
-}
+pipeline {
+    agent any
 
-stage('Deploy') {
-    steps {
-        sh 'docker rm -f devsecops-app || true'
-        sh 'docker run -d -p 5000:5000 devsecops-app'
+    stages {
+
+        stage('Build') {
+            steps {
+                echo "Building application..."
+            }
+        }
+
+        stage('Manual Approval') {
+            steps {
+                input message: "Approve deployment?", ok: "Deploy"
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t devsecops-app .'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'docker rm -f devsecops-app || true'
+                sh 'docker run -d -p 5001:5000 --name devsecops-app devsecops-app'
+            }
+        }
     }
 }
