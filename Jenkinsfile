@@ -1,12 +1,49 @@
-stage('Docker Build') {
-    steps {
-        sh 'docker build -t devsecops-app .'
-    }
-}
+pipeline {
+    agent any
 
-stage('Deploy') {
-    steps {
-        sh 'docker rm -f devsecops-app || true'
-        sh 'docker run -d -p 5000:5000 devsecops-app'
+    triggers {
+        pollSCM('* * * * *')
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Building application..."
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "Running tests..."
+                sh 'python -m unittest discover'
+            }
+        }
+
+        stage('Manual Approval (IAM)') {
+            steps {
+                input message: "Approve deployment to production?", ok: "Deploy"
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t devsecops-app .'
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                sh 'docker rm -f devsecops-app || true'
+                sh 'docker run -d -p 5001:5000 --name devsecops-app devsecops-app'
+            }
+        }
     }
 }
