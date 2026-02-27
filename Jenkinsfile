@@ -16,7 +16,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Building application..."
-                sh 'pip install -r requirements.txt'
+                sh 'pip3 install --break-system-packages -r requirements.txt'
             }
         }
 
