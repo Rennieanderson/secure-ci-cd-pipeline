@@ -27,8 +27,31 @@ pipeline {
             }
         }
 
+        // 🔐 Manual Approval with Email Notification
         stage('Manual Approval (IAM)') {
             steps {
+
+                // 📧 Send email to admin
+                emailext(
+                    subject: " Approval Required for Deployment",
+                    body: """
+Hello Admin,
+
+Your deployment is waiting for approval.
+
+Click the link below to approve:
+${env.BUILD_URL}
+
+Job: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+
+Thanks,
+Jenkins CI/CD
+""",
+                    to: "your-email@gmail.com"
+                )
+
+                // ⏸ Pause for approval
                 input message: "Approve deployment to production?", ok: "Deploy"
             }
         }
