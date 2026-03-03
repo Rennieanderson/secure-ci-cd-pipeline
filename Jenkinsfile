@@ -5,6 +5,11 @@ pipeline {
         pollSCM('* * * * *')
     }
 
+    environment {
+        IMAGE_NAME = "devsecops-app"
+        CONTAINER_NAME = "devsecops-app"
+    }
+
     stages {
 
         stage('Checkout Code') {
@@ -13,17 +18,19 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                echo "Building application..."
-                sh 'pip3 install --break-system-packages -r requirements.txt'
+        stage('Build & Test (Python Container)') {
+            agent {
+                docker {
+                    image 'python:3.9'
+                    args '-u root'
+                }
             }
-        }
-
-        stage('Test') {
             steps {
-                echo "Running tests..."
-                sh 'python3 -m unittest discover'
+                echo "Installing dependencies..."
+                sh 'pip install --no-cache-dir -r requirements.txt'
+
+                echo "Running unit tests..."
+                sh 'python -m unittest discover'
             }
         }
 
@@ -55,15 +62,26 @@ Jenkins CI/CD
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t devsecops-app .'
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
         stage('Deploy Container') {
             steps {
-                sh 'docker rm -f devsecops-app || true'
-                sh 'docker run -d -p 5001:5000 --name devsecops-app devsecops-app'
+                sh '''
+                docker rm -f $CONTAINER_NAME || true
+                docker run -d -p 5001:5000 --name $CONTAINER_NAME $IMAGE_NAME
+                '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline executed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed!"
         }
     }
 }
